@@ -38,12 +38,14 @@ class ExtractCommandTests(unittest.TestCase):
                 config=SimpleNamespace(base_dir=str(base_dir)),
                 date=target_date,
                 force=True,
+                state=SimpleNamespace(current_step=None),
             )
 
             with patch("commands.zip.extract_7z") as extract_7z:
                 extract(job_context)
 
             self.assertFalse(stale_file.exists())
+            self.assertEqual(job_context.state.current_step, "extract_done")
             extract_7z.assert_called_once_with(
                 zip_path=zip_path,
                 output_dir=output_dir,
@@ -62,12 +64,14 @@ class ExtractCommandTests(unittest.TestCase):
                 config=SimpleNamespace(base_dir=str(base_dir)),
                 date=target_date,
                 force=False,
+                state=SimpleNamespace(current_step=None),
             )
 
             with patch("commands.zip.extract_7z") as extract_7z:
                 extract(job_context)
 
             extract_7z.assert_not_called()
+            self.assertEqual(job_context.state.current_step, "extract_skipped")
 
 
 if __name__ == "__main__":

@@ -14,6 +14,8 @@ from commands.ftp import download_zip
 
 
 def compress(jobContext) -> None:
+    jobContext.state.current_step = "compress_prepare"
+
     base_dir = Path(jobContext.config.base_dir)
 
     source_path = base_dir / jobContext.date
@@ -23,6 +25,7 @@ def compress(jobContext) -> None:
         raise FileNotFoundError(source_path)
 
     if output_path.exists() and not jobContext.force:
+        jobContext.state.current_step = "compress_skipped"
         logging.info(
             "COMPRESS_SKIP output_exists path=%s",
             output_path,
@@ -35,10 +38,14 @@ def compress(jobContext) -> None:
         output_path,
     )
 
+    jobContext.state.current_step = "compress_archive"
+
     compress_7z(
         source_path=source_path,
         output_path=output_path,
     )
+
+    jobContext.state.current_step = "compress_done"
 
     logging.info(
         "COMPRESS_DONE output=%s",
@@ -47,6 +54,8 @@ def compress(jobContext) -> None:
 
 
 def extract(jobContext) -> None:
+    jobContext.state.current_step = "extract_prepare"
+
     base_dir = Path(jobContext.config.base_dir)
 
     zip_path = base_dir / "{}.7z".format(jobContext.date)
@@ -59,14 +68,18 @@ def extract(jobContext) -> None:
         )
 
         download_zip(jobContext)
+        jobContext.state.current_step = "extract_prepare"
 
     if output_dir.exists():
         if not jobContext.force:
+            jobContext.state.current_step = "extract_skipped"
             logging.info(
                 "EXTRACT_SKIP output_exists path=%s",
                 output_dir,
             )
             return
+
+        jobContext.state.current_step = "extract_cleanup"
 
         logging.info(
             "EXTRACT_CLEANUP output_exists path=%s",
@@ -80,10 +93,14 @@ def extract(jobContext) -> None:
         output_dir,
     )
 
+    jobContext.state.current_step = "extract_archive"
+
     extract_7z(
         zip_path=zip_path,
         output_dir=output_dir,
     )
+
+    jobContext.state.current_step = "extract_done"
 
     logging.info(
         "EXTRACT_DONE output=%s",

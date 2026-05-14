@@ -11,6 +11,8 @@ from services.ftp import (
 
 
 def download_zip(jobContext) -> None:
+    jobContext.state.current_step = "download_zip"
+
     base_dir = Path(jobContext.config.base_dir)
 
     local_path = base_dir / "{}.7z".format(jobContext.date)
@@ -23,6 +25,7 @@ def download_zip(jobContext) -> None:
     )
 
     if local_path.exists() and not jobContext.force:
+        jobContext.state.current_step = "download_skipped"
         logging.info(
             "DOWNLOAD_SKIP local_exists path=%s",
             local_path,
@@ -46,8 +49,12 @@ def download_zip(jobContext) -> None:
         local_path,
     )
 
+    jobContext.state.current_step = "download_done"
+
 
 def upload_zip(jobContext) -> None:
+    jobContext.state.current_step = "upload_zip"
+
     base_dir = Path(jobContext.config.base_dir)
 
     local_path = base_dir / "{}.7z".format(jobContext.date)
@@ -78,3 +85,5 @@ def upload_zip(jobContext) -> None:
         "UPLOAD_DONE remote=%s",
         remote_path,
     )
+
+    jobContext.state.current_step = "upload_done"

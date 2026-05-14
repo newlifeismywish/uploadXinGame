@@ -16,6 +16,8 @@ from services.import_to_es import process_file
 
 
 def import_to_es(jobContext) -> None:
+    jobContext.state.current_step = "import_prepare"
+
     index_name = jobContext.config.es.index
 
     base_dir = Path(jobContext.config.base_dir)
@@ -36,11 +38,15 @@ def import_to_es(jobContext) -> None:
         len(json_files),
     )
 
+    jobContext.state.current_step = "recreate_index"
     recreate_index(index_name, config=jobContext.config.es)
 
+    jobContext.state.current_step = "disable_refresh"
     set_refresh_interval(index_name, "-1", config=jobContext.config.es)
 
     try:
+        jobContext.state.current_step = "upload_files"
+
         with ProcessPoolExecutor(
             max_workers=jobContext.config.workers,
         ) as executor:
@@ -86,9 +92,13 @@ def import_to_es(jobContext) -> None:
                     raise
 
     finally:
+        previous_step = jobContext.state.current_step
+        jobContext.state.current_step = "restore_refresh"
         set_refresh_interval(index_name, "1s", config=jobContext.config.es)
         refresh_index(index_name, config=jobContext.config.es)
+        jobContext.state.current_step = previous_step
 
+    jobContext.state.current_step = "count_index"
     actual_count = count_index(index_name, config=jobContext.config.es)
 
     logging.info(
@@ -99,6 +109,7 @@ def import_to_es(jobContext) -> None:
         actual_count,
     )
 
+    jobContext.state.current_step = "validate_import_counts"
     if jobContext.state.parsed_count != jobContext.state.success_count:
         raise RuntimeError(
             "Import count mismatch: parsed={} success={} failed={}".format(
@@ -108,6 +119,7 @@ def import_to_es(jobContext) -> None:
             )
         )
 
+    jobContext.state.current_step = "validate_index_count"
     if actual_count != jobContext.state.success_count:
         raise RuntimeError(
             "Elasticsearch count mismatch: success={} actual={}".format(
@@ -115,3 +127,5 @@ def import_to_es(jobContext) -> None:
                 actual_count,
             )
         )
+
+    jobContext.state.current_step = "import_done"

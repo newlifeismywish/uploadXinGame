@@ -2,12 +2,14 @@
 
 import argparse
 import logging
+import traceback
 
 from datetime import datetime, timedelta
 
 from config import load_config
 from job_context import JobContext
 from logger import setup_logging
+from services.mail import send as send_mail
 
 from commands.import_to_es import import_to_es
 from commands.zip import compress, extract
@@ -72,6 +74,101 @@ def run(jobContext):
     import_to_es(jobContext)
 
 
+def build_notification_subject(command, date, success):
+    status = "SUCCESS" if success else "FAILED"
+    return "[uploadXinGame] {} command={} date={}".format(
+        status,
+        command,
+        date,
+    )
+
+
+def build_notification_body(
+    *,
+    command,
+    jobContext,
+    success,
+    started_at,
+    ended_at,
+    error=None,
+    traceback_text=None,
+):
+    state = jobContext.state
+    status = "SUCCESS" if success else "FAILED"
+    elapsed_seconds = int((ended_at - started_at).total_seconds())
+
+    lines = [
+        "Job status: {}".format(status),
+        "Command: {}".format(command),
+        "Date: {}".format(jobContext.date),
+        "Current step: {}".format(state.current_step or "unknown"),
+        "Index: {}".format(jobContext.config.es.index),
+        "Base directory: {}".format(jobContext.config.base_dir),
+        "Force: {}".format(jobContext.force),
+        "Started at: {}".format(started_at.isoformat(timespec="seconds")),
+        "Ended at: {}".format(ended_at.isoformat(timespec="seconds")),
+        "Elapsed seconds: {}".format(elapsed_seconds),
+        "",
+        "Counts",
+        "Parsed: {}".format(state.parsed_count),
+        "Success: {}".format(state.success_count),
+        "Failed: {}".format(state.failed_count),
+        "Processed files: {}".format(len(state.processed_files)),
+        "Failed files: {}".format(len(state.failed_files)),
+    ]
+
+    if state.failed_files:
+        lines.extend(["", "Failed file list:"])
+        lines.extend(state.failed_files)
+
+    if error is not None:
+        lines.extend(
+            [
+                "",
+                "Error",
+                "Failed step: {}".format(state.current_step or "unknown"),
+                "Failure reason: {}: {}".format(type(error).__name__, error),
+            ]
+        )
+
+    if traceback_text:
+        lines.extend(["", "Traceback", traceback_text])
+
+    return "\n".join(lines)
+
+
+def send_job_notification(
+    *,
+    command,
+    jobContext,
+    success,
+    started_at,
+    ended_at,
+    error=None,
+    traceback_text=None,
+):
+    subject = build_notification_subject(
+        command=command,
+        date=jobContext.date,
+        success=success,
+    )
+    body = build_notification_body(
+        command=command,
+        jobContext=jobContext,
+        success=success,
+        started_at=started_at,
+        ended_at=ended_at,
+        error=error,
+        traceback_text=traceback_text,
+    )
+
+    send_mail(
+        subject=subject,
+        body=body,
+        config=jobContext.config.mail,
+    )
+
+
 def main():
     args = parse_args()
 
@@ -108,7 +205,63 @@ def main():
         "import": import_to_es,
     }
 
-    commands[args.command](jobContext)
+    started_at = datetime.now()
+
+    try:
+        commands[args.command](jobContext)
+
+    except Exception as exc:
+        traceback_text = traceback.format_exc()
+        logging.exception(
+            "JOB_FAILED command=%s date=%s",
+            args.command,
+            target_date,
+        )
+
+        try:
+            send_job_notification(
+                command=args.command,
+                jobContext=jobContext,
+                success=False,
+                started_at=started_at,
+                ended_at=datetime.now(),
+                error=exc,
+                traceback_text=traceback_text,
+            )
+            logging.info(
+                "MAIL_NOTIFICATION_SENT status=failed command=%s date=%s",
+                args.command,
+                target_date,
+            )
+        except Exception:
+            logging.exception(
+                "MAIL_NOTIFICATION_FAILED status=failed command=%s date=%s",
+                args.command,
+                target_date,
+            )
+
+        raise
+
+    else:
+        try:
+            send_job_notification(
+                command=args.command,
+                jobContext=jobContext,
+                success=True,
+                started_at=started_at,
+                ended_at=datetime.now(),
+            )
+            logging.info(
+                "MAIL_NOTIFICATION_SENT status=success command=%s date=%s",
+                args.command,
+                target_date,
+            )
+        except Exception:
+            logging.exception(
+                "MAIL_NOTIFICATION_FAILED status=success command=%s date=%s",
+                args.command,
+                target_date,
+            )
 
 
 if __name__ == "__main__":
