@@ -36,9 +36,9 @@ def import_to_es(jobContext) -> None:
         len(json_files),
     )
 
-    recreate_index(index_name)
+    recreate_index(index_name, config=jobContext.config.es)
 
-    set_refresh_interval(index_name, "-1")
+    set_refresh_interval(index_name, "-1", config=jobContext.config.es)
 
     try:
         with ProcessPoolExecutor(
@@ -51,6 +51,7 @@ def import_to_es(jobContext) -> None:
                     str(file_path),
                     index_name,
                     jobContext.config.bulk_size,
+                    jobContext.config.es,
                 ): file_path
                 for file_path in json_files
             }
@@ -85,10 +86,10 @@ def import_to_es(jobContext) -> None:
                     raise
 
     finally:
-        set_refresh_interval(index_name, "1s")
-        refresh_index(index_name)
+        set_refresh_interval(index_name, "1s", config=jobContext.config.es)
+        refresh_index(index_name, config=jobContext.config.es)
 
-    actual_count = count_index(index_name)
+    actual_count = count_index(index_name, config=jobContext.config.es)
 
     logging.info(
         "IMPORT_DONE parsed=%s success=%s failed=%s actual_index_count=%s",
@@ -114,4 +115,3 @@ def import_to_es(jobContext) -> None:
                 actual_count,
             )
         )
-

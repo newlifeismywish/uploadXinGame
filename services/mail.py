@@ -4,11 +4,9 @@ import smtplib
 
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from typing import Optional
 
-from config import load_config
-
-
-_config = load_config()
+from config import MailConfig, load_config
 
 
 def send(
@@ -17,9 +15,10 @@ def send(
     body: str,
     to_list=None,
     is_html: bool = False,
+    config: Optional[MailConfig] = None,
 ) -> None:
 
-    mail_config = _config.mail
+    mail_config = config or load_config().mail
 
     if to_list is None:
         to_list = mail_config.mail_to

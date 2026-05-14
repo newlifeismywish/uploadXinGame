@@ -1,6 +1,7 @@
 # main.py
 
 import argparse
+import logging
 
 from datetime import datetime, timedelta
 
@@ -47,6 +48,12 @@ def parse_args():
         action="store_true",
     )
 
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="show the selected command and date without running the job",
+    )
+
     return parser.parse_args()
 
 
@@ -68,14 +75,23 @@ def run(jobContext):
 def main():
     args = parse_args()
 
-    config = load_config()
-
     target_date = resolve_date(
         args.date,
         args.days_ago,
     )
 
     setup_logging(target_date)
+
+    if args.dry_run:
+        logging.info(
+            "DRY_RUN command=%s date=%s force=%s",
+            args.command,
+            target_date,
+            args.force,
+        )
+        return
+
+    config = load_config()
 
     jobContext = JobContext(
         config=config,
@@ -92,7 +108,7 @@ def main():
         "import": import_to_es,
     }
 
-    #commands[args.command](jobContext)
+    commands[args.command](jobContext)
 
 
 if __name__ == "__main__":

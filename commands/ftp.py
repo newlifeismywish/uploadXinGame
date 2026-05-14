@@ -38,6 +38,7 @@ def download_zip(jobContext) -> None:
     download_file(
         remote_path=remote_path,
         local_path=local_path,
+        config=jobContext.config.ftp,
     )
 
     logging.info(
@@ -70,6 +71,7 @@ def upload_zip(jobContext) -> None:
     upload_file(
         remote_path=remote_path,
         local_path=local_path,
+        config=jobContext.config.ftp,
     )
 
     logging.info(

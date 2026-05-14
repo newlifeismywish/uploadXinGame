@@ -1,27 +1,27 @@
 # services/es.py
 import logging
-from elasticsearch import Elasticsearch, NotFoundError
-from elasticsearch.helpers import streaming_bulk, scan, bulk
+from typing import Any, Optional
 
-from config import load_config
-
-
-_config = load_config()
+from config import ESConfig, load_config
 
 
-def create_es_client() -> Elasticsearch:
+def create_es_client(config: Optional[ESConfig] = None):
+    from elasticsearch import Elasticsearch
+
+    es_config = config or load_config().es
+
     return Elasticsearch(
-        hosts=[_config.es.host],
+        hosts=[es_config.host],
         basic_auth=(
-            _config.es.username,
-            _config.es.password,
+            es_config.username,
+            es_config.password,
         ),
-        request_timeout=_config.es.timeout,
+        request_timeout=es_config.timeout,
     )
 
 
-def index_exists(index_name: str) -> bool:
-    es = create_es_client()
+def index_exists(index_name: str, config: Optional[ESConfig] = None) -> bool:
+    es = create_es_client(config)
 
     try:
         return es.indices.exists(index=index_name)
@@ -30,8 +30,8 @@ def index_exists(index_name: str) -> bool:
         es.close()
 
 
-def delete_index(index_name: str) -> None:
-    es = create_es_client()
+def delete_index(index_name: str, config: Optional[ESConfig] = None) -> None:
+    es = create_es_client(config)
 
     try:
         es.indices.delete(index=index_name)
@@ -40,8 +40,13 @@ def delete_index(index_name: str) -> None:
         es.close()
 
 
-def create_index(index_name: str, settings=None, mappings=None) -> None:
-    es = create_es_client()
+def create_index(
+    index_name: str,
+    settings=None,
+    mappings=None,
+    config: Optional[ESConfig] = None,
+) -> None:
+    es = create_es_client(config)
 
     try:
         body = {}
@@ -61,19 +66,29 @@ def create_index(index_name: str, settings=None, mappings=None) -> None:
         es.close()
 
 
-def recreate_index(index_name: str, settings=None, mappings=None) -> None:
-    if index_exists(index_name):
-        delete_index(index_name)
+def recreate_index(
+    index_name: str,
+    settings=None,
+    mappings=None,
+    config: Optional[ESConfig] = None,
+) -> None:
+    if index_exists(index_name, config):
+        delete_index(index_name, config)
 
     create_index(
         index_name=index_name,
         settings=settings,
         mappings=mappings,
+        config=config,
     )
 
 
-def set_refresh_interval(index_name: str, interval: str) -> None:
-    es = create_es_client()
+def set_refresh_interval(
+    index_name: str,
+    interval: str,
+    config: Optional[ESConfig] = None,
+) -> None:
+    es = create_es_client(config)
 
     try:
         es.indices.put_settings(
@@ -89,8 +104,8 @@ def set_refresh_interval(index_name: str, interval: str) -> None:
         es.close()
 
 
-def refresh_index(index_name: str) -> None:
-    es = create_es_client()
+def refresh_index(index_name: str, config: Optional[ESConfig] = None) -> None:
+    es = create_es_client(config)
 
     try:
         es.indices.refresh(index=index_name)
@@ -99,8 +114,8 @@ def refresh_index(index_name: str) -> None:
         es.close()
 
 
-def count_index(index_name: str) -> int:
-    es = create_es_client()
+def count_index(index_name: str, config: Optional[ESConfig] = None) -> int:
+    es = create_es_client(config)
 
     try:
         result = es.count(index=index_name)
@@ -110,7 +125,9 @@ def count_index(index_name: str) -> int:
         es.close()
 
 
-def streaming_bulk_upload(es_client: Elasticsearch, actions):
+def streaming_bulk_upload(es_client: Any, actions):
+    from elasticsearch.helpers import streaming_bulk
+
     success_count = 0
     failed_count = 0
 
@@ -124,7 +141,7 @@ def streaming_bulk_upload(es_client: Elasticsearch, actions):
             success_count += 1
         else:
             failed_count += 1
-            print("ES_BULK_FAILED:", result)
+            logging.error("ES_BULK_FAILED result=%s", result)
 
     return {
         "success": success_count,
@@ -136,6 +153,7 @@ def bulk_upload(
     actions,
     chunk_size: int = 1000,
 ) -> dict:
+    from elasticsearch.helpers import bulk
 
     success_count, errors = bulk(
         client=es_client,
@@ -161,12 +179,14 @@ def bulk_upload(
     }
 
 def scan_documents(
-    es_client: Elasticsearch, 
+    es_client: Any,
     index_name: str, 
     search_body: dict, 
     batch_size: int = 1000, 
     scroll: str = "5m"
 ):
+    from elasticsearch.helpers import scan
+
     iter_data = scan(
         client=es_client, 
         index=index_name, 
@@ -179,7 +199,7 @@ def scan_documents(
         yield d["_source"]
 
 def create_transform(
-    es_client: Elasticsearch,
+    es_client: Any,
     transform_id: str,
     transform_body: dict,
 ) -> None:
@@ -189,9 +209,11 @@ def create_transform(
     )
 
 def exists_transform(
-    es_client: Elasticsearch,
+    es_client: Any,
     transform_id: str
 ) -> bool:
+    from elasticsearch import NotFoundError
+
     try:
         es_client.transform.get_transform(
             transform_id=transform_id
@@ -202,7 +224,7 @@ def exists_transform(
 
 
 def start_transform(
-    es_client: Elasticsearch,
+    es_client: Any,
     transform_id: str
 ) -> None:
     es_client.transform.start_transform(
@@ -211,7 +233,7 @@ def start_transform(
 
 
 def delete_transform(
-    es_client: Elasticsearch,
+    es_client: Any,
     transform_id: str,
     force: bool = True,
     delete_dest_index : bool = False

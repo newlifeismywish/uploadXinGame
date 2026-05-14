@@ -1,6 +1,7 @@
 # commands/zip.py
 
 import logging
+import shutil
 
 from pathlib import Path
 
@@ -59,12 +60,19 @@ def extract(jobContext) -> None:
 
         download_zip(jobContext)
 
-    if output_dir.exists() and not jobContext.force:
+    if output_dir.exists():
+        if not jobContext.force:
+            logging.info(
+                "EXTRACT_SKIP output_exists path=%s",
+                output_dir,
+            )
+            return
+
         logging.info(
-            "EXTRACT_SKIP output_exists path=%s",
+            "EXTRACT_CLEANUP output_exists path=%s",
             output_dir,
         )
-        return
+        shutil.rmtree(output_dir)
 
     logging.info(
         "EXTRACT_START zip=%s output=%s",

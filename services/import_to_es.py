@@ -1,8 +1,9 @@
-from services.es import create_es_client, bulk_upload
-
 import json
 import logging
-from typing import Dict, Any, Iterator
+from typing import Any, Dict, Iterator, Optional
+
+from config import ESConfig
+from services.es import create_es_client, bulk_upload
 
 def build_es_action(action, index_name):
     source=action["_source"]
@@ -44,13 +45,12 @@ def iter_es_actions(
         except Exception:
             stats["failed"] += 1
 
-            print(part)
-
             logging.exception(
-                "PARSE_OR_BUILD_ACTION_FAILED file=%s part_index=%s parsed=%s",
+                "PARSE_OR_BUILD_ACTION_FAILED file=%s part_index=%s parsed=%s part_sample=%r",
                 file_path,
                 part_index,
                 stats["parsed"],
+                part[:500],
             )
 
 
@@ -58,9 +58,10 @@ def process_file(
     file_path: str,
     index_name: str,
     chunk_size: int = 1000,
+    es_config: Optional[ESConfig] = None,
 ) -> dict:
 
-    es_client = create_es_client()
+    es_client = create_es_client(es_config)
 
     stats = {
         "parsed": 0,
@@ -100,4 +101,3 @@ def process_file(
 
     finally:
         es_client.close()
-

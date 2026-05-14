@@ -1,33 +1,53 @@
 from ftplib import FTP
 from pathlib import Path
-from typing import Union, Optional, List, Dict, Any
+from typing import Optional, Union
 
-from config import load_config
+from config import FTPConfig, load_config
 
-_config = load_config()
 
-def connect_ftp() -> FTP:
+def connect_ftp(config: Optional[FTPConfig] = None) -> FTP:
+    ftp_config = config or load_config().ftp
+
     ftp = FTP()
-    ftp.connect(host=_config.ftp.host, port=_config.ftp.port, timeout=_config.ftp.timeout)
-    ftp.login(user=_config.ftp.user, passwd=_config.ftp.password)
+    ftp.connect(
+        host=ftp_config.host,
+        port=ftp_config.port,
+        timeout=ftp_config.timeout,
+    )
+    ftp.login(
+        user=ftp_config.user,
+        passwd=ftp_config.password,
+    )
     return ftp
 
 
 def download_file(
     *,
     remote_path: str,
-    local_path: Union[str,Path]
+    local_path: Union[str, Path],
+    config: Optional[FTPConfig] = None,
 ) -> Path:
     local_path = Path(local_path)
     local_path.parent.mkdir(parents=True, exist_ok=True)
 
-    ftp = connect_ftp()
+    part_path = local_path.with_name(local_path.name + ".part")
+
+    if part_path.exists():
+        part_path.unlink()
+
+    ftp = connect_ftp(config)
 
     try:
-        with open(local_path, "wb") as f:
+        with open(part_path, "wb") as f:
             ftp.retrbinary(f"RETR {remote_path}", f.write)
 
+        part_path.replace(local_path)
         return local_path
+
+    except Exception:
+        if part_path.exists():
+            part_path.unlink()
+        raise
 
     finally:
         try:
@@ -39,14 +59,15 @@ def download_file(
 def upload_file(
     *,
     remote_path: str,
-    local_path: Union[str,Path]
+    local_path: Union[str, Path],
+    config: Optional[FTPConfig] = None,
 ) -> str:
     local_path = Path(local_path)
 
     if not local_path.exists():
         raise FileNotFoundError(local_path)
 
-    ftp = connect_ftp()
+    ftp = connect_ftp(config)
 
     try:
         with open(local_path, "rb") as f:

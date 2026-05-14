@@ -8,6 +8,7 @@ env/
 
 .env
 .env.*
+!.env.example
 
 logs/
 BaseDirector/
@@ -16,3 +17,5 @@ BaseDirector/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.tmp-tests/
+/tmp*/

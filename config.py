@@ -1,7 +1,12 @@
 import os
 
 from dataclasses import dataclass
-from dotenv import load_dotenv
+
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    def load_dotenv(*args, **kwargs):
+        return False
 
 
 load_dotenv()
@@ -34,7 +39,7 @@ class MailConfig:
     password: str
 
     mail_from: str
-    mail_to: str
+    mail_to: list[str]
     timeout: int
 
 
@@ -77,7 +82,11 @@ def load_config() -> AppConfig:
             password=os.environ["MAIL_PASSWORD"],
             timeout=int(os.getenv("MAIL_TIMEOUT", "30")),
             mail_from=os.environ["MAIL_FROM"],
-            mail_to=[ x.strip() for x in os.environ["MAIL_TO"].split(",") if x.strip()],
+            mail_to=[
+                x.strip()
+                for x in os.environ["MAIL_TO"].split(",")
+                if x.strip()
+            ],
         ),
 
         base_dir=os.getenv("BASE_DIR", "BaseDirector"),
