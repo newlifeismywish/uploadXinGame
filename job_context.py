@@ -1,24 +1,21 @@
-from dataclasses import dataclass, field
 from typing import Optional
 
 from config import AppConfig
 
 
-@dataclass
 class JobState:
-    current_step: Optional[str] = None
+    def __init__(self):
+        self.current_step = None  # type: Optional[str]
+        self.parsed_count = 0
+        self.success_count = 0
+        self.failed_count = 0
+        self.processed_files = []
+        self.failed_files = []
 
-    parsed_count: int = 0
-    success_count: int = 0
-    failed_count: int = 0
 
-    processed_files: list[str] = field(default_factory=list)
-    failed_files: list[str] = field(default_factory=list)
-
-
-@dataclass
 class JobContext:
-    config: AppConfig
-    date: str
-    force: bool = False
-    state: JobState = field(default_factory=JobState)
+    def __init__(self, config, date, force=False, state=None):
+        self.config = config  # type: AppConfig
+        self.date = date
+        self.force = force
+        self.state = state or JobState()

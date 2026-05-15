@@ -1,75 +1,104 @@
 import os
 import sys
 
-MIN_PYTHON_VERSION = (3, 9)
+from pathlib import Path
+
+
+MIN_PYTHON_VERSION = (3, 6)
 
 if sys.version_info < MIN_PYTHON_VERSION:
     raise RuntimeError(
-        "uploadXinGame requires Python 3.9 or newer. "
+        "uploadXinGame requires Python 3.6 or newer. "
         "Current Python is {}.{}.{}. "
-        "Please run this project with python3.9.".format(
+        "Please run this project with python3.6 or newer.".format(
             sys.version_info.major,
             sys.version_info.minor,
             sys.version_info.micro,
         )
     )
 
-from dataclasses import dataclass
-from pathlib import Path
-
-
-try:
-    from dotenv import load_dotenv
-except ImportError:
-    def load_dotenv(*args, **kwargs):
-        return False
-
 
 PROJECT_DIR = Path(__file__).resolve().parent
-load_dotenv(PROJECT_DIR / ".env")
 
 
-@dataclass(frozen=True)
+def load_env_file(env_path=None):
+    env_path = Path(env_path or PROJECT_DIR / ".env")
+
+    if not env_path.exists():
+        return
+
+    with env_path.open("r", encoding="utf-8") as env_file:
+        for line in env_file:
+            line = line.strip()
+
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip()
+
+            if (
+                len(value) >= 2
+                and value[0] == value[-1]
+                and value[0] in ("'", '"')
+            ):
+                value = value[1:-1]
+
+            if key:
+                os.environ.setdefault(key, value)
+
+
+load_env_file()
+
+
 class FTPConfig:
-    host: str
-    port: int
-    user: str
-    password: str
-    remote_dir: str
-    timeout: int
+    def __init__(self, host, port, user, password, remote_dir, timeout):
+        self.host = host
+        self.port = port
+        self.user = user
+        self.password = password
+        self.remote_dir = remote_dir
+        self.timeout = timeout
 
 
-@dataclass(frozen=True)
 class ESConfig:
-    host: str
-    username: str
-    password: str
-    timeout: int
-    index: str
+    def __init__(self, host, username, password, timeout, index):
+        self.host = host
+        self.username = username
+        self.password = password
+        self.timeout = timeout
+        self.index = index
 
-@dataclass(frozen=True)
+
 class MailConfig:
-    host: str
-    port: int
+    def __init__(
+        self,
+        host,
+        port,
+        username,
+        password,
+        mail_from,
+        mail_to,
+        timeout,
+    ):
+        self.host = host
+        self.port = port
+        self.username = username
+        self.password = password
+        self.mail_from = mail_from
+        self.mail_to = mail_to
+        self.timeout = timeout
 
-    username: str
-    password: str
 
-    mail_from: str
-    mail_to: list[str]
-    timeout: int
-
-
-@dataclass(frozen=True)
 class AppConfig:
-    ftp: FTPConfig
-    es: ESConfig
-    mail: MailConfig
-
-    base_dir: str
-
-    bulk_size: int
-    workers: int
+    def __init__(self, ftp, es, mail, base_dir, bulk_size, workers):
+        self.ftp = ftp
+        self.es = es
+        self.mail = mail
+        self.base_dir = base_dir
+        self.bulk_size = bulk_size
+        self.workers = workers
 
 
 def required_env(name: str) -> str:
@@ -78,8 +107,7 @@ def required_env(name: str) -> str:
     except KeyError:
         raise RuntimeError(
             "Missing required environment variable: {}. "
-            "Check that .env exists in {} and that python-dotenv is installed "
-            "for the Python interpreter running this script.".format(
+            "Check that .env exists in {} and contains this setting.".format(
                 name,
                 PROJECT_DIR,
             )

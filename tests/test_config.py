@@ -1,8 +1,25 @@
 import os
+import shutil
+import uuid
 import unittest
+from contextlib import contextmanager
+from pathlib import Path
 from unittest.mock import patch
 
-from config import load_config, load_mail_config
+from config import load_config, load_env_file, load_mail_config
+
+
+@contextmanager
+def workspace_tmp_dir():
+    root = Path.cwd() / ".tmp-tests"
+    root.mkdir(exist_ok=True)
+    path = root / uuid.uuid4().hex
+    path.mkdir()
+
+    try:
+        yield path
+    finally:
+        shutil.rmtree(str(path), ignore_errors=True)
 
 
 REQUIRED_ENV = {
@@ -56,6 +73,27 @@ class LoadConfigTests(unittest.TestCase):
                 "Missing required environment variable: MAIL_HOST",
             ):
                 load_mail_config()
+
+    def test_load_env_file_accepts_spaces_around_equals(self):
+        with workspace_tmp_dir() as tmp_dir:
+            env_path = tmp_dir / ".env"
+            env_path.write_text(
+                "\n".join(
+                    [
+                        "FTP_HOST = x.x.x.x",
+                        "MAIL_HOST=smtp.example.com",
+                        "QUOTED_VALUE = 'hello world'",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            with patch.dict(os.environ, {}, clear=True):
+                load_env_file(env_path)
+
+                self.assertEqual(os.environ["FTP_HOST"], "x.x.x.x")
+                self.assertEqual(os.environ["MAIL_HOST"], "smtp.example.com")
+                self.assertEqual(os.environ["QUOTED_VALUE"], "hello world")
 
 
 if __name__ == "__main__":

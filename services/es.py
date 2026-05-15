@@ -12,11 +12,11 @@ def create_es_client(config: Optional[ESConfig] = None):
 
     return Elasticsearch(
         hosts=[es_config.host],
-        basic_auth=(
+        http_auth=(
             es_config.username,
             es_config.password,
         ),
-        request_timeout=es_config.timeout,
+        timeout=es_config.timeout,
     )
 
 

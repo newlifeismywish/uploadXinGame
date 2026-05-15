@@ -17,10 +17,10 @@ The job is organized around a target date in `yyyymmdd` format.
 
 ## Requirements
 
-- Python 3.9
+- Python 3.6 or newer
 - 7-Zip command-line executable `7za`
 - FTP access
-- Elasticsearch access
+- Elasticsearch 7.x access
 
 Check the Python version before running the job:
 
@@ -28,11 +28,11 @@ Check the Python version before running the job:
 python --version
 ```
 
-On Linux servers, the `python` command may point to an older system Python. Use Python 3.9 explicitly when needed:
+On CentOS 7, the `python` command may point to the older system Python. Use the project Python explicitly when needed:
 
 ```bash
-python3.9 -m pip install -r requirements.txt
-python3.9 main.py import --date 20260513 --dry-run
+python3.6 -m pip install -r requirements.txt
+python3.6 main.py import --date 20260513 --dry-run
 ```
 
 Install Python dependencies:
@@ -50,7 +50,7 @@ copy .env.example .env
 ```
 
 The `.env` file must be placed in the project root, next to `config.py`.
-For best compatibility, write variables without spaces around `=`:
+Spaces around `=` are allowed, but the compact form is recommended:
 
 ```env
 FTP_HOST=x.x.x.x
