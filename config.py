@@ -1,6 +1,22 @@
 import os
+import sys
 
 from dataclasses import dataclass
+
+
+MIN_PYTHON_VERSION = (3, 9)
+
+if sys.version_info < MIN_PYTHON_VERSION:
+    raise RuntimeError(
+        "uploadXinGame requires Python 3.9 or newer. "
+        "Current Python is {}.{}.{}. "
+        "Please run this project with python3.9.".format(
+            sys.version_info.major,
+            sys.version_info.minor,
+            sys.version_info.micro,
+        )
+    )
+
 
 try:
     from dotenv import load_dotenv

@@ -22,6 +22,19 @@ The job is organized around a target date in `yyyymmdd` format.
 - FTP access
 - Elasticsearch access
 
+Check the Python version before running the job:
+
+```bash
+python --version
+```
+
+On Linux servers, the `python` command may point to an older system Python. Use Python 3.9 explicitly when needed:
+
+```bash
+python3.9 -m pip install -r requirements.txt
+python3.9 main.py import --date 20260513 --dry-run
+```
+
 Install Python dependencies:
 
 ```bash
