@@ -8,7 +8,7 @@ The job is organized around a target date in `yyyymmdd` format.
 
 1. Locate `BaseDirector/{date}.7z`.
 2. Download the archive from FTP when it does not exist locally.
-3. Extract the archive into `BaseDirector/{date}/`.
+3. Extract the archive into `BaseDirector/`; the archive is expected to contain its own `{date}/` directory.
 4. Parse JSON files under `BaseDirector/{date}/*.json`.
 5. Convert each parsed record into Elasticsearch bulk actions.
 6. Recreate the date-specific Elasticsearch index and upload records.

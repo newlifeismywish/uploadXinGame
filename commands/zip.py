@@ -59,7 +59,8 @@ def extract(jobContext) -> None:
     base_dir = Path(jobContext.config.base_dir)
 
     zip_path = base_dir / "{}.7z".format(jobContext.date)
-    output_dir = base_dir / jobContext.date
+    data_dir = base_dir / jobContext.date
+    extract_dir = base_dir
 
     if not zip_path.exists():
         logging.info(
@@ -70,12 +71,12 @@ def extract(jobContext) -> None:
         download_zip(jobContext)
         jobContext.state.current_step = "extract_prepare"
 
-    if output_dir.exists():
+    if data_dir.exists():
         if not jobContext.force:
             jobContext.state.current_step = "extract_skipped"
             logging.info(
                 "EXTRACT_SKIP output_exists path=%s",
-                output_dir,
+                data_dir,
             )
             return
 
@@ -83,26 +84,28 @@ def extract(jobContext) -> None:
 
         logging.info(
             "EXTRACT_CLEANUP output_exists path=%s",
-            output_dir,
+            data_dir,
         )
-        shutil.rmtree(output_dir)
+        shutil.rmtree(data_dir)
 
     logging.info(
-        "EXTRACT_START zip=%s output=%s",
+        "EXTRACT_START zip=%s output=%s expected_data_dir=%s",
         zip_path,
-        output_dir,
+        extract_dir,
+        data_dir,
     )
 
     jobContext.state.current_step = "extract_archive"
 
     extract_7z(
         zip_path=zip_path,
-        output_dir=output_dir,
+        output_dir=extract_dir,
     )
 
     jobContext.state.current_step = "extract_done"
 
     logging.info(
-        "EXTRACT_DONE output=%s",
-        output_dir,
+        "EXTRACT_DONE output=%s expected_data_dir=%s",
+        extract_dir,
+        data_dir,
     )

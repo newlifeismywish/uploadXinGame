@@ -48,7 +48,7 @@ class ExtractCommandTests(unittest.TestCase):
             self.assertEqual(job_context.state.current_step, "extract_done")
             extract_7z.assert_called_once_with(
                 zip_path=zip_path,
-                output_dir=output_dir,
+                output_dir=base_dir,
             )
 
     def test_extract_skips_existing_output_directory_without_force(self):
