@@ -93,7 +93,7 @@ def set_refresh_interval(
     try:
         es.indices.put_settings(
             index=index_name,
-            settings={
+            body={
                 "index": {
                     "refresh_interval": interval,
                 }
