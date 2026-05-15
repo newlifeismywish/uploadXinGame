@@ -2,7 +2,7 @@ import os
 import unittest
 from unittest.mock import patch
 
-from config import load_config
+from config import load_config, load_mail_config
 
 
 REQUIRED_ENV = {
@@ -33,6 +33,29 @@ class LoadConfigTests(unittest.TestCase):
         self.assertEqual(config.base_dir, "BaseDirector")
         self.assertEqual(config.bulk_size, 1000)
         self.assertEqual(config.workers, 4)
+
+    def test_load_mail_config_does_not_require_ftp_or_es_settings(self):
+        mail_env = {
+            "MAIL_HOST": "smtp.example.com",
+            "MAIL_USERNAME": "smtp-user",
+            "MAIL_PASSWORD": "smtp-password",
+            "MAIL_FROM": "noreply@example.com",
+            "MAIL_TO": "one@example.com",
+        }
+
+        with patch.dict(os.environ, mail_env, clear=True):
+            config = load_mail_config()
+
+        self.assertEqual(config.host, "smtp.example.com")
+        self.assertEqual(config.mail_to, ["one@example.com"])
+
+    def test_missing_required_env_raises_clear_error(self):
+        with patch.dict(os.environ, {}, clear=True):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "Missing required environment variable: MAIL_HOST",
+            ):
+                load_mail_config()
 
 
 if __name__ == "__main__":

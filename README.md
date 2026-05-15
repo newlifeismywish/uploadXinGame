@@ -49,6 +49,13 @@ Create a `.env` file from the example:
 copy .env.example .env
 ```
 
+The `.env` file must be placed in the project root, next to `config.py`.
+For best compatibility, write variables without spaces around `=`:
+
+```env
+FTP_HOST=x.x.x.x
+```
+
 Required settings:
 
 ```env

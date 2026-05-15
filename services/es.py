@@ -2,13 +2,13 @@
 import logging
 from typing import Any, Optional
 
-from config import ESConfig, load_config
+from config import ESConfig, load_es_config
 
 
 def create_es_client(config: Optional[ESConfig] = None):
     from elasticsearch import Elasticsearch
 
-    es_config = config or load_config().es
+    es_config = config or load_es_config()
 
     return Elasticsearch(
         hosts=[es_config.host],

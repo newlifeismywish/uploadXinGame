@@ -2,11 +2,11 @@ from ftplib import FTP
 from pathlib import Path
 from typing import Optional, Union
 
-from config import FTPConfig, load_config
+from config import FTPConfig, load_ftp_config
 
 
 def connect_ftp(config: Optional[FTPConfig] = None) -> FTP:
-    ftp_config = config or load_config().ftp
+    ftp_config = config or load_ftp_config()
 
     ftp = FTP()
     ftp.connect(

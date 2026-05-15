@@ -6,7 +6,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import Optional
 
-from config import MailConfig, load_config
+from config import MailConfig, load_mail_config
 
 
 def send(
@@ -18,7 +18,7 @@ def send(
     config: Optional[MailConfig] = None,
 ) -> None:
 
-    mail_config = config or load_config().mail
+    mail_config = config or load_mail_config()
 
     if to_list is None:
         to_list = mail_config.mail_to
