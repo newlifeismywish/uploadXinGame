@@ -30,6 +30,7 @@ def make_job_context(tmp_root):
     return SimpleNamespace(
         config=SimpleNamespace(
             es=SimpleNamespace(index="upload_xin_game_20260513"),
+            ftp=SimpleNamespace(remote_dir="/export"),
         ),
         date="20260513",
         force=True,
@@ -102,10 +103,13 @@ class DownloadFromEsTests(unittest.TestCase):
                             "commands.download_from_es.compress_7z",
                         ) as compress_7z:
                             with patch(
-                                "commands.download_from_es.ROWS_PER_FILE",
-                                2,
-                            ):
-                                download_from_es(job_context)
+                                "commands.download_from_es.upload_file",
+                            ) as upload_file:
+                                with patch(
+                                    "commands.download_from_es.ROWS_PER_FILE",
+                                    2,
+                                ):
+                                    download_from_es(job_context)
 
             output_dir = tmp_root / "20260513"
             archive_path = tmp_root / "20260513.7z"
@@ -127,6 +131,11 @@ class DownloadFromEsTests(unittest.TestCase):
             compress_7z.assert_called_once_with(
                 source_path=output_dir,
                 output_path=archive_path,
+            )
+            upload_file.assert_called_once_with(
+                remote_path="/export/20260513.7z",
+                local_path=archive_path,
+                config=job_context.config.ftp,
             )
             es_client.close.assert_called_once_with()
             self.assertEqual(job_context.state.parsed_count, 3)

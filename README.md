@@ -136,7 +136,7 @@ python main.py import --date 20260513 --dry-run
 - The Elasticsearch index is recreated during import. This is expected because the configured index is date-specific.
 - `ES_INDEX` is treated as the base index name. The job appends the target date automatically, so `ES_INDEX=upload_xin_game` becomes `upload_xin_game_20260513`.
 - `ES_INDEX` also supports `{date}` or `yyyymmdd` placeholders, such as `upload_xin_game_{date}` or `upload_xin_game_yyyymmdd`.
-- `download_from_es` exports all documents from the resolved Elasticsearch index into `/tmp/{date}/{idx}.tsv`, using the first document's `_source` keys as the TSV header, then compresses `/tmp/{date}` into `/tmp/{date}.7z`.
+- `download_from_es` exports all documents from the resolved Elasticsearch index into `/tmp/{date}/{idx}.tsv`, using the first document's `_source` keys as the TSV header, compresses `/tmp/{date}` into `/tmp/{date}.7z`, then uploads the archive to `FTP_REMOTE_DIR/{date}.7z`.
 - FTP downloads are written to a `.part` file first and moved into place only after the download succeeds.
 - Success and failure notifications are sent by mail after the selected command finishes.
 - Failure notifications include the failed step, exception reason, and traceback.

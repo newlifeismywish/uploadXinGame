@@ -8,6 +8,7 @@ import shutil
 from pathlib import Path
 
 from services.es import create_es_client, scan_all_documents
+from services.ftp import upload_file
 from services.zip import compress as compress_7z
 
 
@@ -74,6 +75,15 @@ def flush_buffer(output_dir, file_index, fields, rows):
     )
 
     return file_path
+
+
+def resolve_remote_archive_path(jobContext):
+    return (
+        jobContext.config.ftp.remote_dir
+        + "/"
+        + jobContext.date
+        + ".7z"
+    )
 
 
 def download_from_es(jobContext):
@@ -158,12 +168,23 @@ def download_from_es(jobContext):
         output_path=archive_path,
     )
 
+    jobContext.state.current_step = "download_from_es_upload_ftp"
+
+    remote_path = resolve_remote_archive_path(jobContext)
+
+    upload_file(
+        remote_path=remote_path,
+        local_path=archive_path,
+        config=jobContext.config.ftp,
+    )
+
     jobContext.state.current_step = "download_from_es_done"
 
     logging.info(
-        "DOWNLOAD_FROM_ES_DONE index=%s rows=%s files=%s archive=%s",
+        "DOWNLOAD_FROM_ES_DONE index=%s rows=%s files=%s archive=%s remote=%s",
         jobContext.config.es.index,
         total_count,
         len(jobContext.state.processed_files),
         archive_path,
+        remote_path,
     )
