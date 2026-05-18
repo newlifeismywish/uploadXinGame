@@ -70,7 +70,7 @@ ES_HOST=http://localhost:9200
 ES_USERNAME=elastic
 ES_PASSWORD=password
 ES_TIMEOUT=30
-ES_INDEX=upload_xin_game_yyyymmdd
+ES_INDEX=upload_xin_game
 
 MAIL_HOST=smtp.example.com
 MAIL_PORT=587
@@ -132,6 +132,8 @@ python main.py import --date 20260513 --dry-run
 ## Notes
 
 - The Elasticsearch index is recreated during import. This is expected because the configured index is date-specific.
+- `ES_INDEX` is treated as the base index name. The job appends the target date automatically, so `ES_INDEX=upload_xin_game` becomes `upload_xin_game_20260513`.
+- `ES_INDEX` also supports `{date}` or `yyyymmdd` placeholders, such as `upload_xin_game_{date}` or `upload_xin_game_yyyymmdd`.
 - FTP downloads are written to a `.part` file first and moved into place only after the download succeeds.
 - Success and failure notifications are sent by mail after the selected command finishes.
 - Failure notifications include the failed step, exception reason, and traceback.

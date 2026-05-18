@@ -9,7 +9,7 @@ import main
 def make_config():
     return SimpleNamespace(
         ftp=SimpleNamespace(),
-        es=SimpleNamespace(index="upload_xin_game_20260513"),
+        es=SimpleNamespace(index="upload_xin_game"),
         mail=SimpleNamespace(),
         base_dir="BaseDirector",
         bulk_size=1000,
@@ -45,6 +45,30 @@ class MainTests(unittest.TestCase):
     def test_resolve_date_accepts_explicit_date(self):
         self.assertEqual(main.resolve_date("20260513", 1), "20260513")
 
+    def test_resolve_index_name_appends_date_to_base_name(self):
+        self.assertEqual(
+            main.resolve_index_name("upload_xin_game", "20260513"),
+            "upload_xin_game_20260513",
+        )
+
+    def test_resolve_index_name_replaces_date_placeholder(self):
+        self.assertEqual(
+            main.resolve_index_name("upload_xin_game_{date}", "20260513"),
+            "upload_xin_game_20260513",
+        )
+
+    def test_resolve_index_name_replaces_yyyymmdd_placeholder(self):
+        self.assertEqual(
+            main.resolve_index_name("upload_xin_game_yyyymmdd", "20260513"),
+            "upload_xin_game_20260513",
+        )
+
+    def test_resolve_index_name_does_not_append_existing_date(self):
+        self.assertEqual(
+            main.resolve_index_name("upload_xin_game_20260513", "20260513"),
+            "upload_xin_game_20260513",
+        )
+
     def test_successful_command_sends_success_notification(self):
         argv = [
             "main.py",
@@ -69,6 +93,7 @@ class MainTests(unittest.TestCase):
         kwargs = send_mail.call_args.kwargs
         self.assertIn("SUCCESS", kwargs["subject"])
         self.assertIn("Current step: import_done", kwargs["body"])
+        self.assertIn("Index: upload_xin_game_20260513", kwargs["body"])
         self.assertIn("Parsed: 2", kwargs["body"])
         self.assertIn("Success: 2", kwargs["body"])
 

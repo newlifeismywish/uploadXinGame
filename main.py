@@ -74,6 +74,19 @@ def run(jobContext):
     import_to_es(jobContext)
 
 
+def resolve_index_name(base_index, date):
+    if "{date}" in base_index:
+        return base_index.replace("{date}", date)
+
+    if "yyyymmdd" in base_index:
+        return base_index.replace("yyyymmdd", date)
+
+    if base_index.endswith("_{}".format(date)):
+        return base_index
+
+    return "{}_{}".format(base_index, date)
+
+
 def build_notification_subject(command, date, success):
     status = "SUCCESS" if success else "FAILED"
     return "[uploadXinGame] {} command={} date={}".format(
@@ -189,6 +202,7 @@ def main():
         return
 
     config = load_config()
+    config.es.index = resolve_index_name(config.es.index, target_date)
 
     jobContext = JobContext(
         config=config,
