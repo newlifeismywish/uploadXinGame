@@ -34,3 +34,11 @@ def setup_logging(date: str) -> None:
             logging.StreamHandler(),
         ],
     )
+
+    for logger_name in (
+        "elasticsearch",
+        "elasticsearch.trace",
+        "urllib3",
+        "urllib3.connectionpool",
+    ):
+        logging.getLogger(logger_name).setLevel(logging.WARNING)
