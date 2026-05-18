@@ -2,9 +2,11 @@
 
 import argparse
 import logging
+import shutil
 import traceback
 
 from datetime import datetime, timedelta
+from pathlib import Path
 
 from config import load_config
 from job_context import JobContext
@@ -72,6 +74,40 @@ def resolve_date(date_str, days_ago):
 def run(jobContext):
     extract(jobContext)
     import_to_es(jobContext)
+    cleanup_extracted_data(jobContext)
+
+
+def cleanup_extracted_data(jobContext):
+    jobContext.state.current_step = "cleanup_extracted_data"
+
+    data_dir = Path(jobContext.config.base_dir) / jobContext.date
+
+    if not data_dir.exists():
+        logging.info(
+            "CLEANUP_SKIP data_dir_not_exists path=%s",
+            data_dir,
+        )
+        jobContext.state.current_step = "cleanup_skipped"
+        return
+
+    if not data_dir.is_dir():
+        raise RuntimeError(
+            "Cleanup target is not a directory: {}".format(data_dir)
+        )
+
+    logging.info(
+        "CLEANUP_START path=%s",
+        data_dir,
+    )
+
+    shutil.rmtree(data_dir)
+
+    jobContext.state.current_step = "cleanup_done"
+
+    logging.info(
+        "CLEANUP_DONE path=%s",
+        data_dir,
+    )
 
 
 def resolve_index_name(base_index, date):

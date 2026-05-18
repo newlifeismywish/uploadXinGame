@@ -13,7 +13,8 @@ The job is organized around a target date in `yyyymmdd` format.
 5. Convert each parsed record into Elasticsearch bulk actions.
 6. Recreate the date-specific Elasticsearch index and upload records.
 7. Validate parsed, successful, failed, and indexed document counts.
-8. Send a mail notification with the final status, step, counts, and error reason.
+8. Remove the extracted `BaseDirector/{date}/` directory after a successful full `run`.
+9. Send a mail notification with the final status, step, counts, and error reason.
 
 ## Requirements
 
@@ -137,6 +138,7 @@ python main.py import --date 20260513 --dry-run
 - FTP downloads are written to a `.part` file first and moved into place only after the download succeeds.
 - Success and failure notifications are sent by mail after the selected command finishes.
 - Failure notifications include the failed step, exception reason, and traceback.
+- A successful full `run` removes the extracted `BaseDirector/{date}/` directory after import. Failed jobs keep the extracted files for troubleshooting.
 - Runtime logs are written to `logs/job_{date}.log`.
 - Generated archives, extracted data, logs, and `.env` files are intentionally ignored by git.
 

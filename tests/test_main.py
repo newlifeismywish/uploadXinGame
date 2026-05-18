@@ -1,17 +1,34 @@
 import sys
 import unittest
+import shutil
+import uuid
+from contextlib import contextmanager
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
 import main
 
 
-def make_config():
+@contextmanager
+def workspace_tmp_dir():
+    root = Path.cwd() / ".tmp-tests"
+    root.mkdir(exist_ok=True)
+    path = root / uuid.uuid4().hex
+    path.mkdir()
+
+    try:
+        yield path
+    finally:
+        shutil.rmtree(str(path), ignore_errors=True)
+
+
+def make_config(base_dir="BaseDirector"):
     return SimpleNamespace(
         ftp=SimpleNamespace(),
         es=SimpleNamespace(index="upload_xin_game"),
         mail=SimpleNamespace(),
-        base_dir="BaseDirector",
+        base_dir=base_dir,
         bulk_size=1000,
         workers=4,
     )
@@ -68,6 +85,53 @@ class MainTests(unittest.TestCase):
             main.resolve_index_name("upload_xin_game_20260513", "20260513"),
             "upload_xin_game_20260513",
         )
+
+    def test_run_cleans_extracted_data_after_successful_import(self):
+        with workspace_tmp_dir() as base_dir:
+            target_date = "20260513"
+            data_dir = base_dir / target_date
+            stale_file = data_dir / "records.json"
+            data_dir.mkdir()
+            stale_file.write_text("{}", encoding="utf-8")
+
+            job_context = SimpleNamespace(
+                config=make_config(str(base_dir)),
+                date=target_date,
+                force=False,
+                state=SimpleNamespace(current_step=None),
+            )
+
+            with patch("main.extract") as extract:
+                with patch("main.import_to_es") as import_to_es:
+                    main.run(job_context)
+
+            extract.assert_called_once_with(job_context)
+            import_to_es.assert_called_once_with(job_context)
+            self.assertFalse(data_dir.exists())
+            self.assertEqual(job_context.state.current_step, "cleanup_done")
+
+    def test_run_keeps_extracted_data_when_import_fails(self):
+        with workspace_tmp_dir() as base_dir:
+            target_date = "20260513"
+            data_dir = base_dir / target_date
+            stale_file = data_dir / "records.json"
+            data_dir.mkdir()
+            stale_file.write_text("{}", encoding="utf-8")
+
+            job_context = SimpleNamespace(
+                config=make_config(str(base_dir)),
+                date=target_date,
+                force=False,
+                state=SimpleNamespace(current_step=None),
+            )
+
+            with patch("main.extract"):
+                with patch("main.import_to_es", side_effect=RuntimeError("failed")):
+                    with self.assertRaises(RuntimeError):
+                        main.run(job_context)
+
+            self.assertTrue(data_dir.exists())
+            self.assertTrue(stale_file.exists())
 
     def test_successful_command_sends_success_notification(self):
         argv = [
