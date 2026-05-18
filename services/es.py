@@ -198,6 +198,27 @@ def scan_documents(
     for d in iter_data:
         yield d["_source"]
 
+
+def scan_all_documents(
+    es_client: Any,
+    index_name: str,
+    batch_size: int = 1000,
+    scroll: str = "5m",
+):
+    from elasticsearch.helpers import scan
+
+    return scan(
+        client=es_client,
+        index=index_name,
+        query={
+            "query": {
+                "match_all": {},
+            }
+        },
+        size=batch_size,
+        scroll=scroll,
+    )
+
 def create_transform(
     es_client: Any,
     transform_id: str,
