@@ -13,6 +13,7 @@ from job_context import JobContext
 from logger import setup_logging
 from services.mail import send as send_mail
 
+from commands.create_transform import create_transform
 from commands.download_from_es import download_from_es
 from commands.import_to_es import import_to_es
 from commands.zip import compress, extract
@@ -34,6 +35,7 @@ def parse_args():
             "compress",
             "import",
             "download_from_es",
+            "create_transform",
         ],
         help="run full job or execute one step only",
     )
@@ -256,6 +258,7 @@ def main():
         "compress": compress,
         "import": import_to_es,
         "download_from_es": download_from_es,
+        "create_transform": create_transform,
     }
 
     started_at = datetime.now()

@@ -103,6 +103,7 @@ python main.py import --date 20260513
 python main.py compress --date 20260513
 python main.py uploadZip --date 20260513
 python main.py download_from_es --date 20260513
+python main.py create_transform --date 20260513
 ```
 
 Use yesterday by default:
@@ -137,6 +138,7 @@ python main.py import --date 20260513 --dry-run
 - `ES_INDEX` is treated as the base index name. The job appends the target date automatically, so `ES_INDEX=upload_xin_game` becomes `upload_xin_game_20260513`.
 - `ES_INDEX` also supports `{date}` or `yyyymmdd` placeholders, such as `upload_xin_game_{date}` or `upload_xin_game_yyyymmdd`.
 - `download_from_es` exports all documents from the resolved Elasticsearch index into `/tmp/{date}/{idx}.tsv`, using the first document's `_source` keys as the TSV header, compresses `/tmp/{date}` into `/tmp/{date}.7z`, then uploads the archive to `FTP_REMOTE_DIR/{date}.7z`.
+- `create_transform` reads `transform_template/user_sample.json`, replaces `source.index` with the resolved Elasticsearch index, and creates a transform named `{dest.index}_{date}`. Use `--force` to recreate an existing transform.
 - FTP downloads are written to a `.part` file first and moved into place only after the download succeeds.
 - Success and failure notifications are sent by mail after the selected command finishes.
 - Failure notifications include the failed step, exception reason, and traceback.

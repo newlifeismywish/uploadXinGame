@@ -1,0 +1,42 @@
+{
+  "source": {
+    "index": [
+      "playergameinfo_20250101"
+    ],
+    "query": {
+      "match_all": {}
+    }
+  },
+  "dest": {
+    "index": "user_daily_playergameinfo"
+  },
+  "pivot": {
+    "group_by": {
+      "month": {
+        "date_histogram": {
+          "field": "ApplyTime",
+          "calendar_interval": "day"
+        }
+      },
+      "AccountName": {
+        "terms": {
+          "field": "AccountName.keyword"
+        }
+      }
+    },
+    "aggregations": {
+      "totalBet": {
+        "sum": {
+          "field": "BetAmount"
+        }
+      },
+      "totalScore": {
+        "sum": {
+          "field": "WinAmount"
+        }
+      }
+    }
+  },
+  "description": "玩家月統計",
+  "settings": {}
+}
